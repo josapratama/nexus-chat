@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NexusChat
 
-## Getting Started
+**NexusChat** is a modern, self-hosted AI chat interface supporting multiple providers — OpenAI, Anthropic, Google Gemini, Mistral, and local Ollama models — all in one place.
 
-First, run the development server:
+![NexusChat](https://img.shields.io/badge/Next.js-16-black?logo=next.js) ![Prisma](https://img.shields.io/badge/Prisma-7-blue?logo=prisma) ![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)
+
+## Features
+
+- **Multi-Provider** — Switch between OpenAI, Anthropic, Google, Mistral, and Ollama in one click
+- **Streaming Responses** — Real-time token-by-token output
+- **Conversation History** — Persistent chat with PostgreSQL
+- **BYOK** — Bring your own API keys per provider
+- **Local AI (Ollama)** — Run LLMs locally without API costs
+- **Edit & Delete Messages** — Edit sent messages and regenerate AI responses
+- **RAG** — Chat with your own documents (PDF, Markdown, CSV, JSON)
+- **Prompt Library** — Save and reuse prompt templates
+- **Admin Dashboard** — Monitor usage, manage users
+- **Rate Limiting** — Built-in per-user request limits
+- **Export Chats** — Download as Markdown or JSON
+- **Docker Ready** — Full Docker Compose setup for VPS
+
+## Tech Stack
+
+| Layer    | Tech                                       |
+| -------- | ------------------------------------------ |
+| Frontend | Next.js 16, Tailwind CSS 4, Zustand        |
+| Backend  | Next.js API Routes, Vercel AI SDK          |
+| Database | PostgreSQL, Prisma 7                       |
+| Auth     | NextAuth.js v5                             |
+| AI       | OpenAI, Anthropic, Google, Mistral, Ollama |
+| Deploy   | Docker Compose                             |
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- Docker & Docker Compose
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/YOUR_USERNAME/nexus-chat.git
+cd nexus-chat
+npm install
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+# Edit .env — set DATABASE_URL and optionally API keys
+```
+
+### 3. Start database and Ollama
+
+```bash
+docker compose up db ollama -d
+```
+
+### 4. Setup database
+
+```bash
+npx prisma db push
+npm run db:seed
+```
+
+### 5. Run development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Demo accounts:**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Admin: `admin@example.com` / `admin123`
+- User: `demo@example.com` / `demo1234`
 
-## Learn More
+## Docker Deployment (VPS)
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Clone, configure .env, then:
+docker compose up -d
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Run migrations
+docker compose exec app npx prisma db push
+docker compose exec app npx tsx prisma/seed.ts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Pull Ollama models
+docker compose exec ollama ollama pull llama3.1
+```
 
-## Deploy on Vercel
+## Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Variable                       | Description                                               |
+| ------------------------------ | --------------------------------------------------------- |
+| `DATABASE_URL`                 | PostgreSQL connection string                              |
+| `AUTH_SECRET`                  | NextAuth secret (generate with `openssl rand -base64 32`) |
+| `OPENAI_API_KEY`               | OpenAI API key (optional)                                 |
+| `ANTHROPIC_API_KEY`            | Anthropic API key (optional)                              |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI API key (optional)                              |
+| `MISTRAL_API_KEY`              | Mistral API key (optional)                                |
+| `OLLAMA_BASE_URL`              | Ollama URL (default: `http://localhost:11434`)            |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+| Command             | Description              |
+| ------------------- | ------------------------ |
+| `npm run dev`       | Start development server |
+| `npm run build`     | Build for production     |
+| `npm run db:push`   | Push schema to database  |
+| `npm run db:seed`   | Seed demo data           |
+| `npm run db:studio` | Open Prisma Studio       |
+
+## License
+
+MIT
