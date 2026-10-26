@@ -8,7 +8,8 @@ export type AIProvider =
   | "anthropic"
   | "google"
   | "mistral"
-  | "ollama";
+  | "ollama"
+  | "openrouter";
 
 export interface ModelInfo {
   id: string;
@@ -104,6 +105,55 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     maxTokens: 128000,
     supportsVision: false,
   },
+  // OpenRouter
+  {
+    id: "deepseek/deepseek-r1",
+    name: "DeepSeek R1",
+    provider: "openrouter",
+    description: "Open reasoning model with o1-level performance",
+    maxTokens: 128000,
+    supportsVision: false,
+  },
+  {
+    id: "deepseek/deepseek-chat",
+    name: "DeepSeek V3",
+    provider: "openrouter",
+    description: "High performance open weights model",
+    maxTokens: 128000,
+    supportsVision: false,
+  },
+  {
+    id: "anthropic/claude-3.5-sonnet",
+    name: "Claude 3.5 Sonnet (OpenRouter)",
+    provider: "openrouter",
+    description: "Flagship intelligence via OpenRouter",
+    maxTokens: 200000,
+    supportsVision: true,
+  },
+  {
+    id: "openai/gpt-4o",
+    name: "GPT-4o (OpenRouter)",
+    provider: "openrouter",
+    description: "OpenAI flagship via OpenRouter",
+    maxTokens: 128000,
+    supportsVision: true,
+  },
+  {
+    id: "meta-llama/llama-3.3-70b-instruct",
+    name: "Llama 3.3 70B",
+    provider: "openrouter",
+    description: "Meta's flagship open model",
+    maxTokens: 128000,
+    supportsVision: false,
+  },
+  {
+    id: "google/gemini-2.0-flash-001",
+    name: "Gemini 2.0 Flash (OpenRouter)",
+    provider: "openrouter",
+    description: "Next-gen multimodal speed",
+    maxTokens: 1000000,
+    supportsVision: true,
+  },
   // Ollama (local)
   {
     id: "llama3.1",
@@ -157,6 +207,15 @@ export function getProviderInstance(provider: AIProvider, apiKey?: string) {
       return createMistral({
         apiKey: apiKey || process.env.MISTRAL_API_KEY,
       });
+    case "openrouter":
+      return createOpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: apiKey || process.env.OPENROUTER_API_KEY,
+        headers: {
+          "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+          "X-Title": "NexusChat",
+        },
+      });
     case "ollama":
       return createOpenAI({
         baseURL: process.env.OLLAMA_BASE_URL
@@ -169,8 +228,33 @@ export function getProviderInstance(provider: AIProvider, apiKey?: string) {
   }
 }
 
-export function getModelById(modelId: string): ModelInfo | undefined {
-  return AVAILABLE_MODELS.find((m) => m.id === modelId);
+export function getModelById(
+  modelId: string,
+  provider?: string,
+): ModelInfo | undefined {
+  const found = AVAILABLE_MODELS.find((m) => m.id === modelId);
+  if (found) return found;
+  if (provider === "ollama") {
+    return {
+      id: modelId,
+      name: modelId,
+      provider: "ollama",
+      description: "Local Ollama model",
+      maxTokens: 128000,
+      supportsVision: modelId.toLowerCase().includes("llava") || modelId.toLowerCase().includes("vision"),
+    };
+  }
+  if (provider === "openrouter") {
+    return {
+      id: modelId,
+      name: modelId.split("/").pop() || modelId,
+      provider: "openrouter",
+      description: "OpenRouter model",
+      maxTokens: 128000,
+      supportsVision: true,
+    };
+  }
+  return undefined;
 }
 
 export function getModelsByProvider(provider: AIProvider): ModelInfo[] {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Users,
   MessageSquare,
@@ -9,8 +8,16 @@ import {
   ArrowLeft,
   Coins,
   Shield,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
+  Layers,
+  Database,
+  UserCheck,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface Stats {
   overview: {
@@ -74,7 +81,7 @@ export function AdminDashboard() {
       const res = await fetch("/api/admin/users");
       if (res.ok) {
         const data = await res.json();
-        setUsers(data.users);
+        setUsers(data.users || []);
       }
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -83,6 +90,8 @@ export function AdminDashboard() {
 
   async function toggleRole(userId: string, currentRole: string) {
     const newRole = currentRole === "ADMIN" ? "USER" : "ADMIN";
+    if (!confirm(`Ubah role pengguna ini menjadi ${newRole}?`)) return;
+
     try {
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
@@ -99,243 +108,230 @@ export function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <p className="text-xs text-slate-400">Memuat data analitik sistem...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <Link
-              href="/chat"
-              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 mb-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Chat
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Admin Dashboard
-            </h1>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant={activeTab === "overview" ? "default" : "outline"}
-              onClick={() => setActiveTab("overview")}
-            >
-              <Activity className="h-4 w-4 mr-1" />
-              Overview
-            </Button>
-            <Button
-              variant={activeTab === "users" ? "default" : "outline"}
-              onClick={() => setActiveTab("users")}
-            >
-              <Users className="h-4 w-4 mr-1" />
-              Users
-            </Button>
-          </div>
+    <div className="space-y-8">
+      {/* Top Navbar */}
+      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <Link
+          href="/chat"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to Chat</span>
+        </Link>
+
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-400">
+          <ShieldAlert className="h-3.5 w-3.5" />
+          <span>NexusChat Admin Console</span>
+        </span>
+      </div>
+
+      {/* Hero Header */}
+      <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 p-6 backdrop-blur-xl">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-400 mb-2">
+          <Shield className="h-4 w-4" />
+          <span>System Observability & Governance</span>
         </div>
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          Admin Dashboard & Analitik
+        </h1>
+        <p className="mt-2 text-sm text-slate-400 leading-relaxed max-w-2xl">
+          Pantau metrik penggunaan server, volume pesan, token terproses antar provider, serta kelola hak akses dan peran pengguna.
+        </p>
 
-        {activeTab === "overview" && stats && (
-          <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                icon={<Users className="h-5 w-5" />}
-                label="Total Users"
-                value={stats.overview.totalUsers}
-              />
-              <StatCard
-                icon={<MessageSquare className="h-5 w-5" />}
-                label="Conversations"
-                value={stats.overview.totalConversations}
-              />
-              <StatCard
-                icon={<Activity className="h-5 w-5" />}
-                label="Messages"
-                value={stats.overview.totalMessages}
-              />
-              <StatCard
-                icon={<Coins className="h-5 w-5" />}
-                label="Total Tokens"
-                value={formatNumber(stats.overview.totalTokens)}
-              />
+        {/* Tab Switcher */}
+        <div className="mt-6 flex items-center gap-2 pt-4 border-t border-slate-800/80">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95",
+              activeTab === "overview"
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                : "border border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-900 hover:text-white",
+            )}
+          >
+            <TrendingUp className="h-3.5 w-3.5" />
+            <span>Overview & Metrik</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("users")}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95",
+              activeTab === "users"
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                : "border border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-900 hover:text-white",
+            )}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span>Manajemen Pengguna ({users.length})</span>
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "overview" && (
+        <>
+          {/* 4 Stat Metric Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-3xl border border-slate-800/80 bg-slate-900/70 p-5 backdrop-blur-xl">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-3">
+                <Users className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-medium text-slate-400">Total Pengguna</p>
+              <p className="mt-1 text-2xl font-bold text-white">
+                {stats?.overview.totalUsers || 0}
+              </p>
             </div>
 
-            {/* Usage by Provider */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Usage by Provider
-              </h2>
-              {stats.usageByProvider.length === 0 ? (
-                <p className="text-gray-500 text-sm">No usage data yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {stats.usageByProvider.map((item) => (
-                    <div
-                      key={item.provider}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white capitalize">
-                          {item.provider}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {item._count} requests
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-mono text-sm text-gray-900 dark:text-white">
-                          {formatNumber(item._sum.totalTokens || 0)} tokens
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="rounded-3xl border border-slate-800/80 bg-slate-900/70 p-5 backdrop-blur-xl">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-3">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-medium text-slate-400">Total Percakapan</p>
+              <p className="mt-1 text-2xl font-bold text-white">
+                {stats?.overview.totalConversations || 0}
+              </p>
             </div>
 
-            {/* Recent Users */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Recent Users
-              </h2>
-              <div className="space-y-2">
-                {stats.recentUsers.map((user) => (
+            <div className="rounded-3xl border border-slate-800/80 bg-slate-900/70 p-5 backdrop-blur-xl">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-3">
+                <Activity className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-medium text-slate-400">Total Pesan</p>
+              <p className="mt-1 text-2xl font-bold text-white">
+                {stats?.overview.totalMessages || 0}
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-slate-800/80 bg-slate-900/70 p-5 backdrop-blur-xl">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3">
+                <Coins className="h-5 w-5" />
+              </div>
+              <p className="text-xs font-medium text-slate-400">Token Terproses</p>
+              <p className="mt-1 text-2xl font-bold text-white">
+                {stats?.overview.totalTokens ? stats.overview.totalTokens.toLocaleString() : "0"}
+              </p>
+            </div>
+          </div>
+
+          {/* Usage by Provider */}
+          <div className="rounded-3xl border border-slate-800/80 bg-slate-900/70 p-6 backdrop-blur-xl">
+            <h2 className="text-base font-bold text-white mb-1">Distribusi Penggunaan Provider</h2>
+            <p className="text-xs text-slate-400 mb-5">Frekuensi pemanggilan dan konsumsi token per provider AI</p>
+
+            {(!stats?.usageByProvider || stats.usageByProvider.length === 0) ? (
+              <div className="text-center py-8 rounded-2xl border border-dashed border-slate-800 bg-slate-950/40">
+                <Layers className="h-8 w-8 mx-auto text-slate-600 mb-2" />
+                <p className="text-xs text-slate-400">Belum ada rekaman statistik token provider</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {stats.usageByProvider.map((item) => (
                   <div
-                    key={user.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
+                    key={item.provider}
+                    className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-800/90 bg-slate-950/70"
                   >
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {user.name || "Unnamed"}
-                      </p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-xs" />
+                      <span className="font-semibold text-sm text-white uppercase">
+                        {item.provider}
+                      </span>
                     </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                        {user._count.conversations} chats
+
+                    <div className="flex items-center gap-6 text-xs text-slate-400 font-mono">
+                      <span>{item._count} panggilan</span>
+                      <span className="text-indigo-400 font-medium">
+                        {(item._sum?.totalTokens || 0).toLocaleString()} tokens
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </>
+      )}
 
-        {activeTab === "users" && (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              All Users
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-3 px-2 font-medium text-gray-500">
-                      Name
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-gray-500">
-                      Email
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-gray-500">
-                      Role
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-gray-500">
-                      Chats
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-gray-500">
-                      Joined
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-gray-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="border-b border-gray-100 dark:border-gray-800"
-                    >
-                      <td className="py-3 px-2 text-gray-900 dark:text-white">
-                        {user.name || "—"}
+      {activeTab === "users" && (
+        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/70 p-6 backdrop-blur-xl">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-base font-bold text-white">Daftar Pengguna Terdaftar</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Kelola akun dan hak akses pengguna</p>
+            </div>
+            <span className="rounded-xl border border-slate-800 bg-slate-950 px-3 py-1 text-xs font-mono text-slate-400">
+              {users.length} Akun
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-800 text-slate-400 uppercase text-[11px]">
+                <tr>
+                  <th className="pb-3 pl-2">Pengguna</th>
+                  <th className="pb-3">Role</th>
+                  <th className="pb-3">Percakapan</th>
+                  <th className="pb-3">Terdaftar</th>
+                  <th className="pb-3 pr-2 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {users.map((u) => {
+                  const isAdmin = u.role === "ADMIN";
+                  return (
+                    <tr key={u.id} className="hover:bg-slate-900/50 transition">
+                      <td className="py-3.5 pl-2">
+                        <div className="font-medium text-white">{u.name || "Unnamed"}</div>
+                        <div className="text-slate-400 font-mono text-[11px]">{u.email}</div>
                       </td>
-                      <td className="py-3 px-2 text-gray-600 dark:text-gray-400">
-                        {user.email}
-                      </td>
-                      <td className="py-3 px-2">
+                      <td className="py-3.5">
                         <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            user.role === "ADMIN"
-                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                          }`}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold border",
+                            isAdmin
+                              ? "bg-purple-500/10 text-purple-400 border-purple-500/30"
+                              : "bg-slate-800 text-slate-300 border-slate-700",
+                          )}
                         >
-                          {user.role}
+                          {isAdmin ? <ShieldCheck className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                          <span>{u.role}</span>
                         </span>
                       </td>
-                      <td className="py-3 px-2 text-gray-600 dark:text-gray-400">
-                        {user._count.conversations}
+                      <td className="py-3.5 font-mono text-slate-300">
+                        {u._count.conversations} chat
                       </td>
-                      <td className="py-3 px-2 text-gray-600 dark:text-gray-400">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                      <td className="py-3.5 text-slate-400">
+                        {new Date(u.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleRole(user.id, user.role)}
+                      <td className="py-3.5 pr-2 text-right">
+                        <button
+                          onClick={() => toggleRole(u.id, u.role)}
+                          className={cn(
+                            "rounded-xl border px-3 py-1 text-[11px] font-medium transition active:scale-95",
+                            isAdmin
+                              ? "border-slate-800 text-slate-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-400"
+                              : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50",
+                          )}
                         >
-                          <Shield className="h-3 w-3 mr-1" />
-                          {user.role === "ADMIN" ? "Demote" : "Promote"}
-                        </Button>
+                          {isAdmin ? "Ubah ke USER" : "Jadikan ADMIN"}
+                        </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-          {icon}
-        </div>
-        <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {value}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-  return num.toString();
 }

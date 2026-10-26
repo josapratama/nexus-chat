@@ -10,12 +10,15 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
-          Settings
-        </h1>
-        <SettingsForm />
+    <div className="relative min-h-screen bg-slate-950 text-slate-100 selection:bg-blue-600 selection:text-white">
+      {/* Background Ambient Glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-blue-600/15 via-indigo-600/15 to-purple-600/10 blur-[130px] rounded-full" />
+        <div className="absolute top-1/2 -right-40 w-[450px] h-[450px] bg-indigo-500/10 blur-[130px] rounded-full" />
+      </div>
+
+      <div className="relative mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <SettingsForm user={session.user} />
       </div>
     </div>
   );
