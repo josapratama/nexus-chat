@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync:i18n": "node scripts/sync-i18n.mjs nexus-chat src/locales https://polyglot-hub.josapratama.com",
+    "prebuild": "npm run sync:i18n",
+    "predev": "npm run sync:i18n",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
