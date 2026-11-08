@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
 import { ModelSelector } from "./model-selector";
+import { ModelParametersModal } from "./model-parameters-modal";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -215,6 +216,9 @@ export function ChatArea() {
           conversationId: convId || undefined,
           model: selectedModel,
           provider: selectedProvider,
+          temperature: useChatStore.getState().temperature,
+          maxTokens: useChatStore.getState().maxTokens,
+          systemPrompt: useChatStore.getState().customSystemPrompt || undefined,
           attachments: files,
           isRegenerate,
           messages: allMessages.map((m) => ({
@@ -365,7 +369,7 @@ export function ChatArea() {
     await streamChat(activeConversationId, withoutLast, undefined, true);
   }
 
-  function handleStop() {
+  async function handleStop() {
     abortControllerRef.current?.abort();
     if (streamingContent) {
       const assistantMsg: ChatMessage = {
@@ -377,6 +381,43 @@ export function ChatArea() {
       setStreamingContent("");
     }
     setIsLoading(false);
+  }
+
+  async function handleBranch(index: number) {
+    if (!activeConversationId) return;
+    const targetMsg = messages[index];
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/conversations/${activeConversationId}/fork`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          upToMessageId: targetMsg.id,
+          messageIndex: index,
+        }),
+      });
+
+      if (res.ok) {
+        const forkedConv = await res.json();
+        setConversations([forkedConv, ...conversations]);
+        loadedConvIdRef.current = forkedConv.id;
+        setActiveConversation(forkedConv.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setMessages(
+          (forkedConv.messages || []).map((m: { id: string; role: "user" | "assistant"; content: string }) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+          })),
+        );
+      } else {
+        alert("Gagal membuat percabangan (fork) percakapan.");
+      }
+    } catch (err) {
+      console.error("Fork error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -398,8 +439,9 @@ export function ChatArea() {
             <PanelLeft className="h-4 w-4" />
           </Button>
 
-          {/* Clean Model Selector */}
+          {/* Clean Model Selector & Parameters Tuning */}
           <ModelSelector />
+          <ModelParametersModal />
         </div>
 
         {/* Right Header Actions (Zero Redundancy - Clean & Focused) */}
@@ -486,6 +528,7 @@ export function ChatArea() {
                     ? handleRegenerate
                     : undefined
                 }
+                onBranch={() => handleBranch(index)}
               />
             ))}
 

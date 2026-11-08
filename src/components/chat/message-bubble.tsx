@@ -13,6 +13,12 @@ import {
   X,
   Send,
   RotateCcw,
+  Volume2,
+  VolumeX,
+  GitFork,
+  Eye,
+  Code as CodeIcon,
+  ExternalLink,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -24,6 +30,7 @@ interface MessageBubbleProps {
   onEdit?: (newContent: string) => void;
   onDelete?: () => void;
   onRegenerate?: () => void;
+  onBranch?: () => void;
 }
 
 function CodeBlock({
@@ -34,9 +41,12 @@ function CodeBlock({
   children: React.ReactNode;
 }) {
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
   const match = /language-(\w+)/.exec(className || "");
-  const language = match ? match[1] : "";
+  const language = match ? match[1].toLowerCase() : "";
   const codeString = String(children).replace(/\n$/, "");
+
+  const canPreview = ["html", "svg", "xml"].includes(language);
 
   async function copyCode() {
     await navigator.clipboard.writeText(codeString);
@@ -44,33 +54,106 @@ function CodeBlock({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  function openPreviewInNewWindow() {
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(codeString);
+      win.document.close();
+    }
+  }
+
   return (
     <div className="relative my-3 overflow-hidden rounded-xl border border-gray-700/60 bg-gray-950 shadow-md">
-      <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900/90 px-4 py-1.5 text-xs text-gray-400">
-        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-gray-300">
-          {language || "code"}
-        </span>
-        <button
-          onClick={copyCode}
-          type="button"
-          className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-gray-400 transition hover:bg-gray-800 hover:text-white"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-emerald-400">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3.5 w-3.5" />
-              <span>Copy</span>
-            </>
+      <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900/90 px-3.5 py-1.5 text-xs text-gray-400">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-gray-300">
+            {language || "code"}
+          </span>
+
+          {canPreview && (
+            <div className="flex items-center rounded-lg bg-gray-800/80 p-0.5 border border-gray-700/50">
+              <button
+                type="button"
+                onClick={() => setActiveTab("code")}
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium transition",
+                  activeTab === "code"
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-400 hover:text-white"
+                )}
+              >
+                <CodeIcon className="h-3 w-3" /> Code
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("preview")}
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium transition",
+                  activeTab === "preview"
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-400 hover:text-white"
+                )}
+              >
+                <Eye className="h-3 w-3" /> Live Preview
+              </button>
+            </div>
           )}
-        </button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {canPreview && activeTab === "preview" && (
+            <button
+              onClick={openPreviewInNewWindow}
+              type="button"
+              className="flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium text-gray-400 transition hover:bg-gray-800 hover:text-white"
+              title="Open preview in new tab"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Pop Out</span>
+            </button>
+          )}
+
+          <button
+            onClick={copyCode}
+            type="button"
+            className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-gray-400 transition hover:bg-gray-800 hover:text-white"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                <span className="text-emerald-400">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3.5 w-3.5" />
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
-      <pre className="overflow-x-auto p-4 text-xs font-mono leading-relaxed text-gray-100">
-        <code className={className}>{children}</code>
-      </pre>
+
+      {activeTab === "preview" && canPreview ? (
+        <div className="p-4 bg-white dark:bg-slate-900 min-h-[160px] flex items-center justify-center">
+          {language === "svg" ? (
+            <div
+              className="max-w-full overflow-auto flex items-center justify-center p-2"
+              dangerouslySetInnerHTML={{ __html: codeString }}
+            />
+          ) : (
+            <iframe
+              srcDoc={codeString}
+              sandbox="allow-scripts allow-modals"
+              title="HTML Artifact Preview"
+              className="w-full h-72 border-0 rounded-lg bg-white"
+            />
+          )}
+        </div>
+      ) : (
+        <pre className="overflow-x-auto p-4 text-xs font-mono leading-relaxed text-gray-100">
+          <code className={className}>{children}</code>
+        </pre>
+      )}
     </div>
   );
 }
@@ -82,8 +165,10 @@ export function MessageBubble({
   onEdit,
   onDelete,
   onRegenerate,
+  onBranch,
 }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -102,6 +187,25 @@ export function MessageBubble({
     await navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function toggleSpeech() {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    // Clean markdown code blocks from speech output for natural listening
+    const cleanText = content.replace(/```[\s\S]*?```/g, "Code block omitted.");
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
   }
 
   function handleEdit() {
@@ -233,16 +337,23 @@ export function MessageBubble({
         {!isEditing && (
           <div
             className={cn(
-              "mt-1 flex items-center gap-1 px-1 text-xs text-gray-400 transition-opacity",
+              "mt-1.5 flex items-center gap-1.5 px-1 text-xs text-slate-400 transition-opacity",
               isUser ? "justify-end" : "justify-start",
               "opacity-80 sm:opacity-0 sm:group-hover:opacity-100",
             )}
           >
+            {/* Token Badge for Assistant Messages */}
+            {!isUser && !isStreaming && content.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 mr-1.5 select-none">
+                <span>⚡ ~{Math.round(content.length / 4)} tokens</span>
+              </span>
+            )}
+
             {isUser && onEdit && (
               <button
                 type="button"
                 onClick={handleEdit}
-                className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-slate-800 hover:text-slate-200"
                 title="Edit message"
               >
                 <Pencil className="h-3 w-3" />
@@ -254,7 +365,7 @@ export function MessageBubble({
               <button
                 type="button"
                 onClick={onDelete}
-                className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-red-950/40 hover:text-red-400"
                 title="Delete message"
               >
                 <Trash2 className="h-3 w-3" />
@@ -266,7 +377,7 @@ export function MessageBubble({
               <button
                 type="button"
                 onClick={onRegenerate}
-                className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-slate-800 hover:text-slate-200"
                 title="Regenerate response"
               >
                 <RotateCcw className="h-3 w-3" />
@@ -274,16 +385,56 @@ export function MessageBubble({
               </button>
             )}
 
+            {/* Read Aloud (Text to Speech) */}
+            {!isUser && content.length > 0 && (
+              <button
+                type="button"
+                onClick={toggleSpeech}
+                className={cn(
+                  "flex items-center gap-1 rounded px-1.5 py-0.5 transition",
+                  isSpeaking
+                    ? "bg-indigo-500/20 text-indigo-400 font-semibold"
+                    : "hover:bg-slate-800 hover:text-slate-200"
+                )}
+                title={isSpeaking ? "Stop speaking" : "Read aloud"}
+              >
+                {isSpeaking ? (
+                  <>
+                    <VolumeX className="h-3 w-3 text-indigo-400 animate-pulse" />
+                    <span className="hidden sm:inline">Stop</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="h-3 w-3" />
+                    <span className="hidden sm:inline">Speak</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Branch / Fork Chat */}
+            {onBranch && (
+              <button
+                type="button"
+                onClick={onBranch}
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-slate-800 hover:text-slate-200"
+                title="Fork / Branch chat from this message"
+              >
+                <GitFork className="h-3 w-3" />
+                <span className="hidden sm:inline">Branch</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={copyToClipboard}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 transition hover:bg-slate-800 hover:text-slate-200"
               title="Copy message"
             >
               {copied ? (
                 <>
-                  <Check className="h-3 w-3 text-emerald-500" />
-                  <span className="text-emerald-500">Copied</span>
+                  <Check className="h-3 w-3 text-emerald-400" />
+                  <span className="text-emerald-400">Copied</span>
                 </>
               ) : (
                 <>

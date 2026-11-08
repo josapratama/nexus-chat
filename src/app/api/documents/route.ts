@@ -58,12 +58,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Extract text content
+    // Extract text content cleanly (support PDF parsing via pdf-parse)
     let content: string;
     if (file.type === "application/pdf") {
-      // For PDF, we store raw text extraction (basic)
-      // In production, use a proper PDF parser like pdf-parse
-      content = await file.text();
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfModule = (await import("pdf-parse")) as any;
+        const pdfParse = typeof pdfModule === "function" ? pdfModule : (pdfModule.default || pdfModule);
+        const pdfData = await pdfParse(buffer);
+        content = pdfData.text || "";
+      } catch (pdfErr) {
+        console.error("PDF parsing error, falling back to raw text:", pdfErr);
+        content = await file.text();
+      }
     } else {
       content = await file.text();
     }

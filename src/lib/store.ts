@@ -6,6 +6,7 @@ export interface Conversation {
   model: string;
   provider: string;
   systemPrompt?: string;
+  temperature?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +26,9 @@ interface ChatState {
   isSidebarOpen: boolean;
   selectedModel: string;
   selectedProvider: string;
+  temperature: number;
+  maxTokens: number | undefined;
+  customSystemPrompt: string;
 
   setConversations: (conversations: Conversation[]) => void;
   setActiveConversation: (id: string | null) => void;
@@ -36,6 +40,9 @@ interface ChatState {
   setSidebarOpen: (open: boolean) => void;
   setSelectedModel: (model: string) => void;
   setSelectedProvider: (provider: string) => void;
+  setTemperature: (temperature: number) => void;
+  setMaxTokens: (maxTokens: number | undefined) => void;
+  setCustomSystemPrompt: (prompt: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -46,6 +53,9 @@ export const useChatStore = create<ChatState>((set) => ({
   isSidebarOpen: true,
   selectedModel: "gpt-4o",
   selectedProvider: "openai",
+  temperature: 0.7,
+  maxTokens: undefined,
+  customSystemPrompt: "",
 
   setConversations: (conversations) => set({ conversations }),
   setActiveConversation: (id) => set({ activeConversationId: id }),
@@ -69,4 +79,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setSidebarOpen: (open) => set({ isSidebarOpen: open }),
   setSelectedModel: (model) => set({ selectedModel: model }),
   setSelectedProvider: (provider) => set({ selectedProvider: provider }),
+  setTemperature: (temperature) => set({ temperature }),
+  setMaxTokens: (maxTokens) => set({ maxTokens }),
+  setCustomSystemPrompt: (customSystemPrompt) => set({ customSystemPrompt }),
 }));

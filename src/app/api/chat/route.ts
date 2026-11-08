@@ -8,6 +8,8 @@ import {
   type AIProvider,
 } from "@/lib/ai/providers";
 import { searchChunks } from "@/lib/rag/chunker";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 
 interface UploadedFileAttachment {
   url: string;
@@ -55,6 +57,8 @@ export async function POST(request: Request) {
     systemPrompt,
     attachments,
     isRegenerate,
+    temperature,
+    maxTokens,
   } = body;
 
   // If provider/model not in request body, try to get from conversation
@@ -219,6 +223,48 @@ export async function POST(request: Request) {
   // Convert UI messages to model messages
   const modelMessages = await convertToModelMessages(messages as UIMessage[]);
 
+  // Multimodal Vision Support: Inject real images into the last user message if model supports vision
+  if (modelInfo?.supportsVision && attachments && Array.isArray(attachments) && attachments.length > 0) {
+    const lastUserIdx = modelMessages.map((m) => m.role).lastIndexOf("user");
+    if (lastUserIdx !== -1) {
+      const targetUserMsg = modelMessages[lastUserIdx];
+      const imageParts: Array<{ type: "image"; image: Buffer | URL }> = [];
+
+      for (const att of attachments as UploadedFileAttachment[]) {
+        if (att.isImage || att.fileType?.startsWith("image/")) {
+          try {
+            const localRelative = att.url.startsWith("/") ? att.url.slice(1) : att.url;
+            const fullLocalPath = join(process.cwd(), "public", localRelative);
+            if (existsSync(fullLocalPath)) {
+              const imgBuffer = readFileSync(fullLocalPath);
+              imageParts.push({ type: "image", image: imgBuffer });
+            } else {
+              imageParts.push({ type: "image", image: new URL(att.url, request.url) });
+            }
+          } catch (imgErr) {
+            console.error("Error attaching image for vision model:", imgErr);
+          }
+        }
+      }
+
+      if (imageParts.length > 0) {
+        if (typeof targetUserMsg.content === "string") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (modelMessages[lastUserIdx] as any).content = [
+            { type: "text", text: targetUserMsg.content },
+            ...imageParts,
+          ];
+        } else if (Array.isArray(targetUserMsg.content)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (modelMessages[lastUserIdx] as any).content = [
+            ...targetUserMsg.content,
+            ...imageParts,
+          ];
+        }
+      }
+    }
+  }
+
   // Build combined system prompt with RAG context
   let finalSystemPrompt = systemPrompt || "";
   if (ragContext) {
@@ -275,6 +321,8 @@ export async function POST(request: Request) {
     const result = streamText({
       model: providerInstance(model),
       messages: modelMessages,
+      temperature: typeof temperature === "number" ? Math.max(0, Math.min(2, temperature)) : 0.7,
+      maxOutputTokens: typeof maxTokens === "number" ? maxTokens : undefined,
       onError: ({ error }) => {
         console.error("Stream generation error:", error);
       },

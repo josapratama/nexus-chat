@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Send, Square, Paperclip, X, Image as ImageIcon } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Square, Paperclip, X, Image as ImageIcon, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -28,8 +28,59 @@ export function ChatInput({
   const [input, setInput] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognition =
+      (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).SpeechRecognition ||
+      (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Browser Anda tidak mendukung Web Speech Recognition API.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = navigator.language || "id-ID";
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0]?.[0]?.transcript;
+        if (transcript) {
+          setInput((prev) => (prev ? `${prev} ${transcript.trim()}` : transcript.trim()));
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+    } catch (e) {
+      console.error("Speech recognition error:", e);
+      setIsListening(false);
+    }
+  }, [isListening]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -164,11 +215,31 @@ export function ChatInput({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask anything or request a task... (Shift+Enter for newline)"
+              placeholder={isListening ? "Listening... Speak into your microphone..." : "Ask anything or request a task... (Shift+Enter for newline)"}
               disabled={disabled}
               rows={1}
               className="max-h-44 min-h-[36px] flex-1 resize-none bg-transparent py-2 text-sm leading-5 text-slate-100 placeholder:text-slate-500 focus:outline-none"
             />
+
+            {/* Voice Input (Speech to Text) */}
+            <button
+              type="button"
+              onClick={toggleListening}
+              disabled={disabled}
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
+                isListening
+                  ? "bg-rose-600 text-white animate-pulse shadow-md shadow-rose-900/50"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              )}
+              title={isListening ? "Stop listening" : "Voice input (Dictation)"}
+            >
+              {isListening ? (
+                <MicOff className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </button>
 
             {isLoading ? (
               <Button

@@ -41,9 +41,24 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json();
 
+  // Whitelist safe update fields to prevent unauthorized mutations
+  const updateData: {
+    title?: string;
+    model?: string;
+    provider?: string;
+    systemPrompt?: string | null;
+    temperature?: number | null;
+  } = {};
+
+  if (typeof body.title === "string") updateData.title = body.title.trim();
+  if (typeof body.model === "string") updateData.model = body.model;
+  if (typeof body.provider === "string") updateData.provider = body.provider;
+  if (body.systemPrompt !== undefined) updateData.systemPrompt = body.systemPrompt;
+  if (typeof body.temperature === "number") updateData.temperature = body.temperature;
+
   const conversation = await prisma.conversation.updateMany({
     where: { id, userId: session.user.id },
-    data: body,
+    data: updateData,
   });
 
   if (conversation.count === 0) {
